@@ -14,6 +14,10 @@ One structured path through core Python:
 
 Each topic has a short description, a fuller explanation, “in plain words,” and **multiple use cases with code examples** you can copy and run. Section banners use Unsplash imagery and short copy; nav and table of contents follow the same order (Fundamentals → Functions → OOP).
 
+## Features
+
+- **Study Help** — “Need help?” button (bottom-right) opens a panel where students can ask questions about Python. Answers are powered by your own **Ollama** instance (configurable via env vars). Suggested questions and a simple chat-style UI make it easy to get unstuck.
+
 ## Tech stack
 
 - **Next.js** (App Router)
@@ -21,6 +25,7 @@ Each topic has a short description, a fuller explanation, “in plain words,” 
 - **Tailwind CSS**
 - **shadcn/ui**–style components
 - **Next.js Image** (with Unsplash for section imagery)
+- **Ollama** (optional) — for Study Help AI; set `OLLAMA_BASE_URL` and `OLLAMA_MODEL` when deploying
 
 ## Quick start
 
@@ -41,6 +46,17 @@ npm run build
 ```
 
 Deploy on **Vercel** by connecting this repo; it will detect Next.js and run `npm run build` automatically.
+
+### Environment variables (for Study Help)
+
+If you use the Study Help feature, set these in your deployment (e.g. Vercel → Project → Settings → Environment Variables):
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `OLLAMA_BASE_URL` | Your Ollama server URL (must be reachable from the deployment) | `http://45.198.59.91:11434` |
+| `OLLAMA_MODEL` | Model name to use for answers | `llama3.2` |
+
+Ensure your Ollama server is running and the chosen model is pulled (e.g. `ollama pull llama3.2`). If these are not set, the app still runs; the help API will use the defaults and may fail if the server is not reachable.
 
 ## Repository
 
