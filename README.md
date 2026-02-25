@@ -1,66 +1,121 @@
-# Learn Functions in Python
+# Learn Python — aifa Learner's Track
 
-A **Python learner's track** from [aifa](https://github.com/aifalabsglobal): fundamentals, function types, and object-oriented design — with clear explanations, multiple use cases, and runnable code examples.
+A structured **Python learner's track** by [aifa](https://github.com/aifalabsglobal) covering fundamentals, function types, and object-oriented programming — with clear explanations, multiple use cases, and runnable code examples in every topic.
 
-**aifa** branding appears in the hero badge (“Learner's track”), table-of-contents banner, footer, and summary. Add `public/aifa-logo.png` for the logo image; the app falls back to styled “aifa” text if the file is missing.
+## Preview
 
-## About
+The app is a single-page interactive reference built with Next.js. It includes a sticky nav bar, a table of contents, seven content sections, summary tables, and an AI-powered study help panel.
 
-One structured path through core Python:
+## Content
 
-1. **Fundamentals** — Data types (int, float, str, bool, None, bytes), collections (list, tuple, set, dict, range), operators, conditions (if/elif/else, ternary, match/case), and loops (for, while, break, continue, else).
-2. **Function types** — Built-in, user-defined, lambda, recursive, higher-order, generators, nested, closures, methods, and async.
-3. **Object-oriented (OOP)** — Classes and instances, instance vs class attributes, instance/class/static methods, `@property`, private and name mangling, inheritance and `super()`, multiple inheritance and MRO, ABCs, magic methods, composition vs inheritance, dataclasses, `__slots__`, context managers.
+The page is organized into three numbered groups:
 
-Each topic has a short description, a fuller explanation, “in plain words,” and **multiple use cases with code examples** you can copy and run. Section banners use Unsplash imagery and short copy; nav and table of contents follow the same order (Fundamentals → Functions → OOP).
+### 1. Fundamentals
+
+| Section | Topics covered |
+|---------|---------------|
+| **Data types** | `int`, `float`, `str`, `bool`, `None`, `bytes` |
+| **Collections** | `list`, `tuple`, `set`, `dict`, `range` |
+| **Operators** | Arithmetic, comparison, logical, bitwise, assignment, identity, membership, walrus (`:=`) |
+| **Conditions** | `if`/`elif`/`else`, ternary, `match`/`case`, truthiness rules |
+| **Loops** | `for`, `while`, `break`/`continue`, `else` clause, nested loops |
+
+### 2. Function Types
+
+Built-in, user-defined, lambda, recursive, higher-order, generator, nested, closure, methods, and async — each with 2–4 use-case examples.
+
+### 3. Object-Oriented Programming
+
+Classes & instances, instance vs class attributes, instance methods, `@classmethod`, `@staticmethod`, `@property`, private & name mangling, inheritance & `super()`, multiple inheritance & MRO, ABCs, magic/dunder methods, composition vs inheritance, dataclasses, `__slots__`, context managers.
+
+Every topic includes a short description, a fuller explanation, an "in plain words" summary, and multiple code examples.
 
 ## Features
 
-- **Study Help** — “Need help?” button (bottom-right) opens a panel where students can ask questions about Python. Answers are powered by your own **Ollama** instance (configurable via env vars). Suggested questions and a simple chat-style UI make it easy to get unstuck.
+- **Sticky navigation** — Contents, Data types, Collections, Operators, Conditions, Loops, Functions, OOP, Summary
+- **Table of contents** — Visual learning path with numbered groups and jump links
+- **Section banners** — Unsplash imagery with descriptive copy for each section
+- **Summary tables** — All topics at a glance in the same order (Fundamentals → Functions → OOP)
+- **Study Help** — A "Need help?" button (bottom-right) opens a chat panel where students can ask Python questions. Answers are powered by **Ollama** (configurable via environment variables). Includes suggested questions and a simple chat-style UI.
 
-## Tech stack
+## aifa Branding
 
-- **Next.js** (App Router)
-- **React** + **TypeScript**
-- **Tailwind CSS**
-- **shadcn/ui**–style components
-- **Next.js Image** (with Unsplash for section imagery)
-- **Ollama** (optional) — for Study Help AI; set `OLLAMA_BASE_URL` and `OLLAMA_MODEL` when deploying
+The **aifa** logo and name appear in:
 
-## Quick start
+- **Hero** — Badge with logo + "Learner's track"
+- **Table of contents** — Banner with logo + "aifa · Table of contents"
+- **Summary** — Intro line
+- **Footer** — Logo + "Powered by aifa"
+
+The `AifaLogo` component loads `public/aifa-logo.png` if present. If the file is missing, it falls back to styled text ("ai" in blue + "fa" in dark). A `variant="light"` mode is used on dark backgrounds (hero and TOC).
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Framework | **Next.js 16** (App Router, Turbopack) |
+| Language | **TypeScript** |
+| UI | **React 19**, **Tailwind CSS 4**, shadcn/ui components |
+| Images | **Next.js Image** with Unsplash remote patterns |
+| AI Help | **Ollama** (optional, via `/api/help` route) |
+| Icons | **Lucide React** |
+
+## Quick Start
 
 ```bash
+# Clone the repo
+git clone https://github.com/aifalabsglobal/learn_python.git
+cd Learn_Functions_Python
+
 # Install dependencies
 npm install
 
-# Run development server (http://localhost:3005)
+# Start the dev server
 npm run dev
 ```
 
 Open [http://localhost:3005](http://localhost:3005) in your browser.
 
-## Build & deploy
+## Build & Deploy
 
 ```bash
 npm run build
 ```
 
-Deploy on **Vercel** by connecting this repo; it will detect Next.js and run `npm run build` automatically.
+Deploy on **Vercel** by connecting the repo — it detects Next.js and runs `npm run build` automatically.
 
-### Environment variables (for Study Help)
+### Environment Variables
 
-If you use the Study Help feature, set these in your deployment (e.g. Vercel → Project → Settings → Environment Variables):
+For the Study Help feature, set these in your deployment environment (e.g. Vercel → Settings → Environment Variables):
 
-| Variable | Description | Example |
+| Variable | Description | Default |
 |----------|-------------|---------|
-| `OLLAMA_BASE_URL` | Your Ollama server URL (must be reachable from the deployment) | `http://45.198.59.91:11434` |
-| `OLLAMA_MODEL` | Model name to use for answers | `llama3.2` |
+| `OLLAMA_BASE_URL` | Ollama server URL (must be reachable from deployment) | `http://45.198.59.91:11434` |
+| `OLLAMA_MODEL` | Model name for generating answers | `llama3.2` |
 
-Ensure your Ollama server is running and the chosen model is pulled (e.g. `ollama pull llama3.2`). If these are not set, the app still runs; the help API will use the defaults and may fail if the server is not reachable.
+Make sure Ollama is running and the model is pulled (`ollama pull llama3.2`). The app still runs without these — the help panel will show an error if the server is unreachable.
+
+## Project Structure
+
+```
+src/
+├── app/
+│   ├── page.tsx          # Main page (nav, hero, TOC, all content sections, footer)
+│   ├── layout.tsx        # Root layout (metadata, fonts, Toaster)
+│   └── api/
+│       └── help/
+│           └── route.ts  # Ollama chat API for Study Help
+├── components/
+│   ├── StudyHelp.tsx     # "Need help?" panel (chat UI, suggested questions)
+│   └── ui/               # shadcn/ui primitives (button, sheet, textarea, etc.)
+public/
+├── aifa-logo.png         # aifa logo (optional — text fallback if missing)
+└── logo.svg              # Python logo
+```
 
 ## Repository
 
-**[github.com/aifalabsglobal/Learn_Functions_Python](https://github.com/aifalabsglobal/Learn_Functions_Python)**
+**[github.com/aifalabsglobal/learn_python](https://github.com/aifalabsglobal/learn_python)**
 
 ## License
 
