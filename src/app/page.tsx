@@ -381,26 +381,11 @@ const loopsTopics = [
 ];
 
 function AifaLogo({ variant = "default" }: { variant?: "default" | "light" }) {
-  const [imgError, setImgError] = useState(false);
   const isLight = variant === "light";
   return (
     <span className="font-bold text-xl tracking-tight inline-flex items-center">
-      {!imgError ? (
-        <Image
-          src="/aifa-logo.png"
-          alt="aifa"
-          width={100}
-          height={32}
-          className={`h-8 w-auto object-contain ${isLight ? "brightness-0 invert" : ""}`}
-          unoptimized
-          onError={() => setImgError(true)}
-        />
-      ) : (
-        <>
-          <span className={isLight ? "text-blue-200" : "text-[#2563eb]"}>ai</span>
-          <span className={isLight ? "text-white" : "text-neutral-800"}>fa</span>
-        </>
-      )}
+      <span className={isLight ? "text-blue-200" : "text-[#2563eb]"}>ai</span>
+      <span className={isLight ? "text-white" : "text-neutral-800"}>fa</span>
     </span>
   );
 }
