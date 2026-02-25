@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { ClerkProvider } from "@clerk/nextjs";
+import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/toaster";
-import { StudyHelp } from "@/components/StudyHelp";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,20 +16,21 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "aifa | Python Functions — Learner's Track",
-  description: "Learn different types of Python functions: built-in, user-defined, lambda, recursive, generators, closures, methods, and async. Clear explanations and code examples.",
-  keywords: ["Python", "Functions", "Learning", "Programming", "Lambda", "Recursion", "Generators", "aifa"],
+  title: "aifa | Learning Platform",
+  description:
+    "Master Python, JavaScript, HTML/CSS, SQL, and Git with adaptive learning, gamification, and progress tracking.",
+  keywords: [
+    "Learning",
+    "Python",
+    "JavaScript",
+    "HTML",
+    "CSS",
+    "SQL",
+    "Git",
+    "aifa",
+    "LMS",
+  ],
   authors: [{ name: "aifa" }],
-  openGraph: {
-    title: "aifa | Python Functions — Learner's Track",
-    description: "Learn Python function types with clear explanations and examples.",
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "aifa | Python Functions — Learner's Track",
-    description: "Learn Python function types with clear explanations and examples.",
-  },
 };
 
 export default function RootLayout({
@@ -37,14 +39,22 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
-      >
-        {children}
-        <StudyHelp />
-        <Toaster />
-      </body>
-    </html>
+    <ClerkProvider>
+      <html lang="en" suppressHydrationWarning>
+        <body
+          className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        >
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="light"
+            enableSystem
+            disableTransitionOnChange
+          >
+            {children}
+            <Toaster />
+          </ThemeProvider>
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }

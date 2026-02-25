@@ -1,53 +1,54 @@
-# Learn Python — aifa Learner's Track
+# aifa Learning Platform
 
-A structured **Python learner's track** by [aifa](https://github.com/aifalabsglobal) covering fundamentals, function types, and object-oriented programming — with clear explanations, multiple use cases, and runnable code examples in every topic.
+A full-featured **Learning Management System** by [aifa](https://github.com/aifalabsglobal) — TailAdmin-style dashboard with Clerk authentication, gamification, adaptive learning, and 5 programming subjects.
 
-## Preview
+## Subjects
 
-The app is a single-page interactive reference built with Next.js. It includes a sticky nav bar, a table of contents, seven content sections, summary tables, and an AI-powered study help panel.
-
-## Content
-
-The page is organized into three numbered groups:
-
-### 1. Fundamentals
-
-| Section | Topics covered |
-|---------|---------------|
-| **Data types** | `int`, `float`, `str`, `bool`, `None`, `bytes` |
-| **Collections** | `list`, `tuple`, `set`, `dict`, `range` |
-| **Operators** | Arithmetic, comparison, logical, bitwise, assignment, identity, membership, walrus (`:=`) |
-| **Conditions** | `if`/`elif`/`else`, ternary, `match`/`case`, truthiness rules |
-| **Loops** | `for`, `while`, `break`/`continue`, `else` clause, nested loops |
-
-### 2. Function Types
-
-Built-in, user-defined, lambda, recursive, higher-order, generator, nested, closure, methods, and async — each with 2–4 use-case examples.
-
-### 3. Object-Oriented Programming
-
-Classes & instances, instance vs class attributes, instance methods, `@classmethod`, `@staticmethod`, `@property`, private & name mangling, inheritance & `super()`, multiple inheritance & MRO, ABCs, magic/dunder methods, composition vs inheritance, dataclasses, `__slots__`, context managers.
-
-Every topic includes a short description, a fuller explanation, an "in plain words" summary, and multiple code examples.
+| Subject | Topics | Description |
+|---------|--------|-------------|
+| **Python** | 16 | Data types, collections, operators, conditions, loops, functions, OOP |
+| **JavaScript** | 10 | Variables, functions, arrays, DOM, events, promises, async/await, ES6+ |
+| **HTML / CSS** | 8 | Elements, forms, semantic HTML, selectors, box model, Flexbox, Grid, responsive |
+| **SQL** | 6 | SELECT, WHERE, JOINs, aggregation, subqueries, indexes |
+| **Git** | 5 | Init/commits, branching, merging, rebasing, workflows |
 
 ## Features
 
-- **Sticky navigation** — Contents, Data types, Collections, Operators, Conditions, Loops, Functions, OOP, Summary
-- **Table of contents** — Visual learning path with numbered groups and jump links
-- **Section banners** — Unsplash imagery with descriptive copy for each section
-- **Summary tables** — All topics at a glance in the same order (Fundamentals → Functions → OOP)
-- **Study Help** — A "Need help?" button (bottom-right) opens a chat panel where students can ask Python questions. Answers are powered by **Ollama** (configurable via environment variables). Includes suggested questions and a simple chat-style UI.
+### Dashboard
+- Stats cards (lessons completed, XP, study hours, active subjects)
+- XP bar with level progression (20 levels)
+- Learning streak tracker (daily/weekly visualization)
+- Subject progress rings
+- Recommended next topics (adaptive)
+- Recent activity feed
 
-## aifa Branding
+### Gamification
+- **XP system**: 10-50 XP per lesson based on difficulty
+- **Levels**: 1-20 with increasing thresholds
+- **Streaks**: Daily learning streak tracking
+- **Badges**: 12+ badges across milestones, streaks, XP, and subject mastery
+- **Progress rings**: Visual completion percentage per subject
 
-The **aifa** logo and name appear in:
+### Adaptive Learning
+- Difficulty levels: Beginner, Intermediate, Advanced
+- Topic prerequisites and dependency tracking
+- Personalized recommendations based on completed topics and skill level
+- Difficulty adjustment based on recent performance
 
-- **Hero** — Badge with logo + "Learner's track"
-- **Table of contents** — Banner with logo + "aifa · Table of contents"
-- **Summary** — Intro line
-- **Footer** — Logo + "Powered by aifa"
+### Navigation
+- TailAdmin-style collapsible sidebar with subject sub-navigation
+- Top bar with search, dark mode toggle, notifications, and user menu
+- Mobile-responsive with slide-out sidebar
 
-The `AifaLogo` component loads `public/aifa-logo.png` if present. If the file is missing, it falls back to styled text ("ai" in blue + "fa" in dark). A `variant="light"` mode is used on dark backgrounds (hero and TOC).
+### Other Pages
+- **Subjects**: Grid view with progress, difficulty range, and continue links
+- **Subject Detail**: Topic roadmap with completion status, locked/unlocked states
+- **Lesson View**: Explanation, "in plain words", code examples with syntax highlighting
+- **Calendar**: Monthly view with study sessions, upcoming events panel
+- **Goals**: Daily/weekly/monthly/subject goals with progress bars
+- **Rewards**: Badge grid by category (milestones, streaks, subject mastery, XP, fun)
+- **Roadmap**: Cross-subject phased learning path (Foundations → Skills → Advanced)
+- **Profile**: User stats, learning history, subject progress overview
 
 ## Tech Stack
 
@@ -55,63 +56,107 @@ The `AifaLogo` component loads `public/aifa-logo.png` if present. If the file is
 |-------|-----------|
 | Framework | **Next.js 16** (App Router, Turbopack) |
 | Language | **TypeScript** |
-| UI | **React 19**, **Tailwind CSS 4**, shadcn/ui components |
-| Images | **Next.js Image** with Unsplash remote patterns |
-| AI Help | **Ollama** (optional, via `/api/help` route) |
-| Icons | **Lucide React** |
+| Auth | **Clerk** (sign-in/up, user sync via webhooks) |
+| Database | **PostgreSQL** via **Prisma ORM** |
+| UI | **React 19**, **Tailwind CSS 4**, shadcn/ui |
+| Charts | **Recharts** |
+| Dark Mode | **next-themes** |
+| Images | **Next.js Image** (Unsplash) |
+| AI Help | **Ollama** (optional, via `/api/help`) |
 
 ## Quick Start
 
 ```bash
-# Clone the repo
 git clone https://github.com/aifalabsglobal/learn_python.git
-cd Learn_Functions_Python
-
-# Install dependencies
+cd learn_python
 npm install
+```
 
-# Start the dev server
+### Environment Setup
+
+Copy `.env.example` to `.env.local` and fill in:
+
+```bash
+cp .env.example .env.local
+```
+
+Required variables:
+- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` — from [Clerk Dashboard](https://dashboard.clerk.com)
+- `CLERK_SECRET_KEY` — from Clerk Dashboard
+- `DATABASE_URL` — PostgreSQL connection string
+- `WEBHOOK_SECRET` — from Clerk Dashboard → Webhooks
+
+### Database Setup
+
+```bash
+npx prisma generate
+npx prisma db push
+npm run db:seed
+```
+
+### Run
+
+```bash
 npm run dev
 ```
 
-Open [http://localhost:3005](http://localhost:3005) in your browser.
-
-## Build & Deploy
-
-```bash
-npm run build
-```
-
-Deploy on **Vercel** by connecting the repo — it detects Next.js and runs `npm run build` automatically.
-
-### Environment Variables
-
-For the Study Help feature, set these in your deployment environment (e.g. Vercel → Settings → Environment Variables):
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `OLLAMA_BASE_URL` | Ollama server URL (must be reachable from deployment) | `http://45.198.59.91:11434` |
-| `OLLAMA_MODEL` | Model name for generating answers | `llama3.2` |
-
-Make sure Ollama is running and the model is pulled (`ollama pull llama3.2`). The app still runs without these — the help panel will show an error if the server is unreachable.
+Open [http://localhost:3005](http://localhost:3005).
 
 ## Project Structure
 
 ```
 src/
 ├── app/
-│   ├── page.tsx          # Main page (nav, hero, TOC, all content sections, footer)
-│   ├── layout.tsx        # Root layout (metadata, fonts, Toaster)
-│   └── api/
-│       └── help/
-│           └── route.ts  # Ollama chat API for Study Help
+│   ├── (auth)/                     # Clerk sign-in/sign-up pages
+│   ├── (dashboard)/                # Dashboard layout + all pages
+│   │   ├── page.tsx                # Dashboard home
+│   │   ├── subjects/               # Subject listing + detail + lesson
+│   │   ├── calendar/               # Calendar page
+│   │   ├── goals/                  # Goals page
+│   │   ├── rewards/                # Rewards/badges page
+│   │   ├── roadmap/                # Learning roadmap
+│   │   └── profile/                # User profile
+│   ├── api/
+│   │   ├── help/                   # Ollama study help API
+│   │   └── webhooks/clerk/         # Clerk user sync webhook
+│   └── page.tsx                    # Original Python learner's track
 ├── components/
-│   ├── StudyHelp.tsx     # "Need help?" panel (chat UI, suggested questions)
-│   └── ui/               # shadcn/ui primitives (button, sheet, textarea, etc.)
-public/
-├── aifa-logo.png         # aifa logo (optional — text fallback if missing)
-└── logo.svg              # Python logo
+│   ├── dashboard/                  # Sidebar, topbar, stats, progress, XP, streak
+│   ├── ui/                         # shadcn/ui components (48 files)
+│   ├── CodeBlock.tsx               # Syntax-highlighted code blocks
+│   └── StudyHelp.tsx               # AI study help panel
+├── lib/
+│   ├── actions/                    # Server actions (progress, goals, calendar, recommendations)
+│   ├── db.ts                       # Prisma client
+│   ├── gamification.ts             # XP, levels, streaks, badge logic
+│   └── utils.ts                    # Utility functions
+prisma/
+├── schema.prisma                   # Database schema (10 models)
+└── seed.ts                         # Seed data (5 subjects, topics, badges)
+proxy.ts                            # Clerk middleware (Next.js 16)
 ```
+
+## Database Models
+
+- **User** — synced from Clerk, tracks XP/level/streak
+- **Subject** — Python, JavaScript, HTML/CSS, SQL, Git
+- **Topic** — belongs to Subject, has order and difficulty
+- **Lesson** — belongs to Topic, stores content as JSON
+- **UserProgress** — tracks lesson completion and XP earned
+- **UserGoal** — daily/weekly/monthly learning goals
+- **Badge** — achievement definitions with criteria
+- **UserBadge** — earned badges per user
+- **CalendarEvent** — scheduled study sessions
+- **UserStreak** — daily streak tracking
+
+## Deploy
+
+Deploy on **Vercel**:
+1. Connect the repo
+2. Set environment variables
+3. Vercel auto-detects Next.js
+
+For the database, use [Neon](https://neon.tech), [Supabase](https://supabase.com), or any PostgreSQL provider.
 
 ## Repository
 
