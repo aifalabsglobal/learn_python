@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const OLLAMA_BASE = process.env.OLLAMA_BASE_URL || "http://45.198.59.91:11434";
-const OLLAMA_MODEL = process.env.OLLAMA_MODEL || "llama3.2";
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL || "deepseek-coder-v2:latest";
 
 const SYSTEM_PROMPT = `You are a friendly Python tutor helping a student who is learning Python (functions, types, OOP, etc.). 
 Answer clearly and concisely. Use simple language and short code examples when helpful. 
 If the student mentions a specific topic (e.g. lambda, recursion, generators), focus your answer on that. 
-Keep responses focused and educational.`;
+Keep responses focused and educational. Keep answers under 300 words.`;
+
+export const maxDuration = 120;
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,6 +27,9 @@ export async function POST(request: NextRequest) {
       ? `[Current topic: ${context}]\n\n${question}`
       : question;
 
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 90_000);
+
     const res = await fetch(`${OLLAMA_BASE}/api/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -36,7 +41,10 @@ export async function POST(request: NextRequest) {
           { role: "user", content: userMessage },
         ],
       }),
+      signal: controller.signal,
     });
+
+    clearTimeout(timeout);
 
     if (!res.ok) {
       const text = await res.text();
@@ -51,7 +59,13 @@ export async function POST(request: NextRequest) {
     const content = data.message?.content ?? "";
 
     return NextResponse.json({ answer: content });
-  } catch (err) {
+  } catch (err: unknown) {
+    if (err instanceof Error && err.name === "AbortError") {
+      return NextResponse.json(
+        { error: "The AI took too long to respond. Try a shorter question." },
+        { status: 504 }
+      );
+    }
     console.error("Help API error:", err);
     return NextResponse.json(
       { error: "Something went wrong. Try again." },
