@@ -1,24 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CodeBlock } from "@/components/CodeBlock";
-import { Menu, X, ArrowRight, BookOpen, Code, Lightbulb, Layers, Zap, ChevronUp } from "lucide-react";
-
-const navLinks = [
-  { label: "Contents", href: "#toc" },
-  { label: "Data types", href: "#datatypes" },
-  { label: "Collections", href: "#collections" },
-  { label: "Operators", href: "#operators" },
-  { label: "Conditions", href: "#conditions" },
-  { label: "Loops", href: "#loops" },
-  { label: "Functions", href: "#functions" },
-  { label: "OOP", href: "#oop" },
-  { label: "Summary", href: "#summary" },
-];
+import { Menu, X, ArrowRight, BookOpen, Code, Lightbulb, Layers, Zap, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 
 const functionTypes = [
   {
@@ -380,6 +368,59 @@ const loopsTopics = [
   { id: "loop-nested", title: "Nested loops", emoji: "📦", description: "Loops inside loops; typical for 2D or combinations.", explanation: "Inner loop runs fully for each outer iteration. Useful for matrices, Cartesian product, or nested structures.", kidExplanation: "A loop inside another loop: for each outer step, do all inner steps.", examples: [{ title: "Nested loop (e.g. table)", code: "for i in range(2):\n    for j in range(3):\n        print(i, j, end=\" \")\n    print()\n# 0 0, 0 1, 0 2\n# 1 0, 1 1, 1 2" }] },
 ];
 
+type NavGroup = {
+  label: string;
+  number: number;
+  sectionId: string;
+  color: string;
+  topics: { id: string; emoji: string; title: string }[];
+};
+
+const navGroups: NavGroup[] = [
+  {
+    label: "Fundamentals",
+    number: 1,
+    sectionId: "datatypes",
+    color: "emerald",
+    topics: [
+      ...dataTypesTopics.map((t) => ({ id: t.id, emoji: t.emoji, title: t.title })),
+      ...collectionsTopics.map((t) => ({ id: t.id, emoji: t.emoji, title: t.title })),
+      ...operatorsTopics.map((t) => ({ id: t.id, emoji: t.emoji, title: t.title })),
+      ...conditionsTopics.map((t) => ({ id: t.id, emoji: t.emoji, title: t.title })),
+      ...loopsTopics.map((t) => ({ id: t.id, emoji: t.emoji, title: t.title })),
+    ],
+  },
+  {
+    label: "Functions",
+    number: 2,
+    sectionId: "functions",
+    color: "blue",
+    topics: functionTypes.map((t) => ({ id: t.id, emoji: t.emoji, title: t.title })),
+  },
+  {
+    label: "OOP",
+    number: 3,
+    sectionId: "oop",
+    color: "amber",
+    topics: oopTopics.map((t) => ({ id: t.id, emoji: t.emoji, title: t.title })),
+  },
+];
+
+const allTopicIds = navGroups.flatMap((g) => g.topics.map((t) => t.id));
+
+const topicMeta: Record<string, { group: NavGroup; topic: { id: string; emoji: string; title: string }; index: number }> = {};
+navGroups.forEach((g) => {
+  g.topics.forEach((t, i) => {
+    topicMeta[t.id] = { group: g, topic: t, index: allTopicIds.indexOf(t.id) };
+  });
+});
+
+const sectionToGroup: Record<string, NavGroup> = {};
+navGroups.forEach((g) => {
+  sectionToGroup[g.sectionId] = g;
+  g.topics.forEach((t) => { sectionToGroup[t.id] = g; });
+});
+
 function AifaLogo({ variant = "default" }: { variant?: "default" | "light" }) {
   const isLight = variant === "light";
   return (
@@ -390,53 +431,285 @@ function AifaLogo({ variant = "default" }: { variant?: "default" | "light" }) {
   );
 }
 
-export default function LearnersPage() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
+function useActiveSection() {
+  const [activeId, setActiveId] = useState<string | null>(null);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 50);
-    window.addEventListener("scroll", onScroll);
-    return () => window.removeEventListener("scroll", onScroll);
+    const els = allTopicIds.map((id) => document.getElementById(id)).filter(Boolean) as HTMLElement[];
+    if (!els.length) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries.filter((e) => e.isIntersecting);
+        if (visible.length) {
+          visible.sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+          setActiveId(visible[0].target.id);
+        }
+      },
+      { rootMargin: "-20% 0px -60% 0px", threshold: 0 }
+    );
+    els.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
   }, []);
 
-  const scrollTo = (href: string) => {
-    const el = document.querySelector(href);
-    el?.scrollIntoView({ behavior: "smooth" });
-    setMobileMenuOpen(false);
+  return activeId;
+}
+
+function useScrollProgress() {
+  const [progress, setProgress] = useState(0);
+  useEffect(() => {
+    const onScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = document.documentElement;
+      setProgress(scrollHeight <= clientHeight ? 0 : (scrollTop / (scrollHeight - clientHeight)) * 100);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+  return progress;
+}
+
+function ProgressBar() {
+  const progress = useScrollProgress();
+  return (
+    <div className="fixed top-0 left-0 right-0 z-[60] h-[3px]">
+      <div
+        className="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 transition-[width] duration-150"
+        style={{ width: `${progress}%` }}
+      />
+    </div>
+  );
+}
+
+function NavDropdown({ group, activeId, scrollTo, onClose }: { group: NavGroup; activeId: string | null; scrollTo: (h: string) => void; onClose: () => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const isActive = group.topics.some((t) => t.id === activeId);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className={`flex items-center gap-1 text-sm font-medium transition-colors whitespace-nowrap ${isActive ? "text-blue-600" : "text-neutral-600 hover:text-neutral-900"}`}
+      >
+        <span className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${isActive ? "bg-blue-100 text-blue-700" : "bg-neutral-100 text-neutral-500"}`}>{group.number}</span>
+        {group.label}
+        <ChevronDown className={`h-3 w-3 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && (
+        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-64 max-h-80 overflow-y-auto rounded-xl border border-neutral-200 bg-white shadow-xl py-2 z-50">
+          {group.topics.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => { scrollTo(`#${t.id}`); setOpen(false); onClose(); }}
+              className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 transition-colors ${t.id === activeId ? "bg-blue-50 text-blue-700 font-medium" : "hover:bg-neutral-50 text-neutral-700"}`}
+            >
+              <span className="text-base">{t.emoji}</span>
+              <span className="truncate">{t.title}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Breadcrumb({ activeId, scrollTo, scrolled }: { activeId: string | null; scrollTo: (h: string) => void; scrolled: boolean }) {
+  if (!scrolled || !activeId || !topicMeta[activeId]) return null;
+  const meta = topicMeta[activeId];
+  const sectionLabel = (() => {
+    if (dataTypesTopics.some((t) => t.id === activeId)) return "Data types";
+    if (collectionsTopics.some((t) => t.id === activeId)) return "Collections";
+    if (operatorsTopics.some((t) => t.id === activeId)) return "Operators";
+    if (conditionsTopics.some((t) => t.id === activeId)) return "Conditions";
+    if (loopsTopics.some((t) => t.id === activeId)) return "Loops";
+    if (functionTypes.some((t) => t.id === activeId)) return "Functions";
+    if (oopTopics.some((t) => t.id === activeId)) return "OOP";
+    return "";
+  })();
+
+  return (
+    <div className="fixed top-16 left-0 right-0 z-[45] bg-neutral-50/95 backdrop-blur-sm border-b border-neutral-100 h-8 flex items-center">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 xl:pl-64 flex items-center gap-1.5 text-xs text-neutral-500 w-full overflow-hidden">
+        <button type="button" onClick={() => scrollTo(`#${meta.group.sectionId}`)} className="hover:text-neutral-800 font-medium shrink-0">
+          {meta.group.number} {meta.group.label}
+        </button>
+        <ChevronRight className="h-3 w-3 shrink-0" />
+        <span className="text-neutral-400 shrink-0">{sectionLabel}</span>
+        <ChevronRight className="h-3 w-3 shrink-0" />
+        <span className="text-neutral-800 font-medium truncate">{meta.topic.emoji} {meta.topic.title}</span>
+        <span className="ml-auto text-neutral-400 shrink-0 hidden sm:block">{meta.index + 1} / {allTopicIds.length}</span>
+      </div>
+    </div>
+  );
+}
+
+function Sidebar({ activeId, scrollTo }: { activeId: string | null; scrollTo: (h: string) => void }) {
+  const activeRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    activeRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [activeId]);
+
+  const [expandedGroups, setExpandedGroups] = useState<Record<number, boolean>>({ 1: true, 2: true, 3: true });
+
+  useEffect(() => {
+    if (!activeId || !topicMeta[activeId]) return;
+    const g = topicMeta[activeId].group.number;
+    setExpandedGroups((prev) => ({ ...prev, [g]: true }));
+  }, [activeId]);
+
+  const toggleGroup = (n: number) => setExpandedGroups((prev) => ({ ...prev, [n]: !prev[n] }));
+
+  const groupColors: Record<number, { bg: string; border: string; text: string; active: string }> = {
+    1: { bg: "bg-emerald-50", border: "border-emerald-300", text: "text-emerald-700", active: "bg-emerald-100 text-emerald-800" },
+    2: { bg: "bg-blue-50", border: "border-blue-300", text: "text-blue-700", active: "bg-blue-100 text-blue-800" },
+    3: { bg: "bg-amber-50", border: "border-amber-300", text: "text-amber-700", active: "bg-amber-100 text-amber-800" },
   };
 
   return (
+    <aside className="hidden xl:block fixed top-24 left-0 w-56 h-[calc(100vh-112px)] overflow-y-auto z-40 border-r border-neutral-100 bg-white/80 backdrop-blur-sm py-4 px-3">
+      <p className="text-[10px] uppercase tracking-wider text-neutral-400 font-semibold mb-3 px-2">Navigation</p>
+      {navGroups.map((g) => {
+        const c = groupColors[g.number];
+        const isGroupActive = g.topics.some((t) => t.id === activeId);
+        return (
+          <div key={g.number} className="mb-2">
+            <button
+              type="button"
+              onClick={() => toggleGroup(g.number)}
+              className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs font-semibold transition-colors ${isGroupActive ? c.active : "text-neutral-600 hover:bg-neutral-50"}`}
+            >
+              <span className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${c.bg} ${c.text}`}>{g.number}</span>
+              <span className="flex-1 text-left">{g.label}</span>
+              <ChevronDown className={`h-3 w-3 transition-transform ${expandedGroups[g.number] ? "rotate-180" : ""}`} />
+            </button>
+            {expandedGroups[g.number] && (
+              <div className="ml-3 mt-1 space-y-0.5">
+                {g.topics.map((t) => {
+                  const isActive = t.id === activeId;
+                  return (
+                    <button
+                      key={t.id}
+                      ref={isActive ? activeRef : undefined}
+                      type="button"
+                      onClick={() => scrollTo(`#${t.id}`)}
+                      className={`w-full text-left text-[11px] px-2 py-1 rounded-md flex items-center gap-1.5 transition-all ${isActive ? `font-semibold ${c.text} ${c.bg} border-l-2 ${c.border}` : "text-neutral-500 hover:text-neutral-800 hover:bg-neutral-50"}`}
+                    >
+                      <span className="shrink-0">{t.emoji}</span>
+                      <span className="truncate">{t.title}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })}
+      <div className="mt-4 pt-3 border-t border-neutral-100 space-y-1">
+        <button type="button" onClick={() => scrollTo("#toc")} className="w-full text-left text-[11px] px-2 py-1 rounded-md text-neutral-500 hover:text-neutral-800 hover:bg-neutral-50 flex items-center gap-1.5">
+          <BookOpen className="h-3 w-3" /> Contents
+        </button>
+        <button type="button" onClick={() => scrollTo("#summary")} className="w-full text-left text-[11px] px-2 py-1 rounded-md text-neutral-500 hover:text-neutral-800 hover:bg-neutral-50 flex items-center gap-1.5">
+          <Layers className="h-3 w-3" /> Summary
+        </button>
+      </div>
+    </aside>
+  );
+}
+
+function FloatingMiniNav({ activeId, scrollTo, scrolled }: { activeId: string | null; scrollTo: (h: string) => void; scrolled: boolean }) {
+  if (!scrolled || !activeId || !topicMeta[activeId]) return null;
+  const idx = topicMeta[activeId].index;
+  const meta = topicMeta[activeId];
+  const prevId = idx > 0 ? allTopicIds[idx - 1] : null;
+  const nextId = idx < allTopicIds.length - 1 ? allTopicIds[idx + 1] : null;
+  const prevTitle = prevId && topicMeta[prevId] ? topicMeta[prevId].topic.title : "";
+  const nextTitle = nextId && topicMeta[nextId] ? topicMeta[nextId].topic.title : "";
+
+  return (
+    <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-40 hidden md:flex items-center gap-2 bg-white/95 backdrop-blur-md shadow-lg rounded-full border border-neutral-200 px-3 py-1.5">
+      <button
+        type="button"
+        disabled={!prevId}
+        onClick={() => prevId && scrollTo(`#${prevId}`)}
+        title={prevTitle}
+        className="p-1 rounded-full hover:bg-neutral-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+      >
+        <ChevronLeft className="h-4 w-4" />
+      </button>
+      <div className="flex items-center gap-2 px-2">
+        <span className="text-base">{meta.topic.emoji}</span>
+        <span className="text-xs font-medium text-neutral-800 max-w-[180px] truncate">{meta.topic.title}</span>
+        <span className="text-[10px] text-neutral-400 tabular-nums">{idx + 1}/{allTopicIds.length}</span>
+      </div>
+      <button
+        type="button"
+        disabled={!nextId}
+        onClick={() => nextId && scrollTo(`#${nextId}`)}
+        title={nextTitle}
+        className="p-1 rounded-full hover:bg-neutral-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+      >
+        <ChevronRight className="h-4 w-4" />
+      </button>
+    </div>
+  );
+}
+
+export default function LearnersPage() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const [mobileAccordion, setMobileAccordion] = useState<number | null>(null);
+  const activeId = useActiveSection();
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 50);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  const scrollTo = useCallback((href: string) => {
+    const el = document.querySelector(href);
+    el?.scrollIntoView({ behavior: "smooth" });
+    setMobileMenuOpen(false);
+    setMobileAccordion(null);
+  }, []);
+
+  return (
     <div className="min-h-screen bg-white text-neutral-900">
+      <ProgressBar />
+
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 border-b border-neutral-200/80 bg-white/90 backdrop-blur-md">
+      <header className="fixed top-[3px] left-0 right-0 z-50 border-b border-neutral-200/80 bg-white/90 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <button type="button" onClick={() => scrollTo("#hero")} className="flex items-center" aria-label="aifa home">
             <AifaLogo />
           </button>
-          <nav className="hidden lg:flex items-center gap-6">
-            {navLinks.slice(0, 1).map((link) => (
-              <button key={link.href} type="button" onClick={() => scrollTo(link.href)} className="text-sm font-medium text-neutral-600 hover:text-neutral-900 transition-colors">
-                {link.label}
-              </button>
+          <nav className="hidden lg:flex items-center gap-5">
+            <button type="button" onClick={() => scrollTo("#toc")} className="text-sm font-medium text-neutral-600 hover:text-neutral-900 transition-colors">
+              Contents
+            </button>
+            <span className="text-neutral-300">|</span>
+            {navGroups.map((g) => (
+              <NavDropdown key={g.number} group={g} activeId={activeId} scrollTo={scrollTo} onClose={() => {}} />
             ))}
             <span className="text-neutral-300">|</span>
-            {navLinks.slice(1, 7).map((link) => (
-              <button key={link.href} type="button" onClick={() => scrollTo(link.href)} className="text-sm font-medium text-neutral-600 hover:text-neutral-900 transition-colors whitespace-nowrap">
-                {link.label}
-              </button>
-            ))}
-            <span className="text-neutral-300">|</span>
-            {navLinks.slice(7, 9).map((link) => (
-              <button key={link.href} type="button" onClick={() => scrollTo(link.href)} className="text-sm font-medium text-neutral-600 hover:text-neutral-900 transition-colors">
-                {link.label}
-              </button>
-            ))}
+            <button type="button" onClick={() => scrollTo("#summary")} className="text-sm font-medium text-neutral-600 hover:text-neutral-900 transition-colors">
+              Summary
+            </button>
           </nav>
           <Button
             variant="ghost"
             size="icon"
-            className="md:hidden"
+            className="lg:hidden"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label="Toggle menu"
           >
@@ -444,25 +717,48 @@ export default function LearnersPage() {
           </Button>
         </div>
         {mobileMenuOpen && (
-          <div className="border-t border-neutral-200 bg-white px-4 py-4 md:hidden">
-            <div className="flex flex-col gap-2">
-              {navLinks.map((link) => (
+          <div className="border-t border-neutral-200 bg-white px-4 py-3 lg:hidden max-h-[70vh] overflow-y-auto">
+            <button type="button" onClick={() => scrollTo("#toc")} className="w-full text-left py-2 text-sm font-medium text-neutral-600 hover:text-neutral-900">
+              Contents
+            </button>
+            {navGroups.map((g) => (
+              <div key={g.number} className="border-t border-neutral-100">
                 <button
-                  key={link.href}
                   type="button"
-                  onClick={() => scrollTo(link.href)}
-                  className="text-left py-2 text-sm font-medium text-neutral-600 hover:text-neutral-900"
+                  onClick={() => setMobileAccordion(mobileAccordion === g.number ? null : g.number)}
+                  className="w-full flex items-center justify-between py-2.5 text-sm font-semibold text-neutral-700"
                 >
-                  {link.label}
+                  <span className="flex items-center gap-2">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-neutral-100 text-[10px] font-bold">{g.number}</span>
+                    {g.label}
+                  </span>
+                  <ChevronDown className={`h-4 w-4 transition-transform ${mobileAccordion === g.number ? "rotate-180" : ""}`} />
                 </button>
-              ))}
-            </div>
+                {mobileAccordion === g.number && (
+                  <div className="pb-2 pl-7 space-y-0.5">
+                    {g.topics.map((t) => (
+                      <button key={t.id} type="button" onClick={() => scrollTo(`#${t.id}`)} className={`w-full text-left text-sm py-1.5 flex items-center gap-2 ${t.id === activeId ? "text-blue-600 font-medium" : "text-neutral-600 hover:text-neutral-900"}`}>
+                        <span>{t.emoji}</span>
+                        <span className="truncate">{t.title}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+            <button type="button" onClick={() => scrollTo("#summary")} className="w-full text-left py-2 text-sm font-medium text-neutral-600 hover:text-neutral-900 border-t border-neutral-100">
+              Summary
+            </button>
           </div>
         )}
       </header>
 
+      <Breadcrumb activeId={activeId} scrollTo={scrollTo} scrolled={scrolled} />
+      <Sidebar activeId={activeId} scrollTo={scrollTo} />
+      <FloatingMiniNav activeId={activeId} scrollTo={scrollTo} scrolled={scrolled} />
+
       {/* Hero */}
-      <section id="hero" className="relative pt-24 pb-16 sm:pt-28 sm:pb-20 overflow-hidden min-h-[420px] flex items-center">
+      <section id="hero" className="relative pt-[67px] pb-16 sm:pb-20 overflow-hidden min-h-[420px] flex items-center">
         <div className="absolute inset-0 bg-gradient-to-br from-blue-900/95 via-blue-800/90 to-indigo-900/95" />
         <div className="absolute inset-0">
           <Image
@@ -495,7 +791,7 @@ export default function LearnersPage() {
       </section>
 
       {/* Table of contents */}
-      <section id="toc" className="py-16 sm:py-20 bg-white">
+      <section id="toc" className="py-16 sm:py-20 bg-white scroll-mt-28">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="relative rounded-2xl overflow-hidden bg-gradient-to-r from-blue-600 to-indigo-700 p-8 sm:p-10 mb-14">
             <div className="absolute inset-0">
@@ -609,8 +905,8 @@ export default function LearnersPage() {
       </section>
 
       {/* 1. Data types */}
-      <section id="datatypes" className="py-16 sm:py-20 bg-emerald-50/30">
-        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+      <section id="datatypes" className="py-16 sm:py-20 bg-emerald-50/30 scroll-mt-28">
+        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 xl:ml-60 xl:mr-auto">
           <div className="flex flex-col sm:flex-row items-center gap-6 rounded-2xl bg-emerald-100/60 border border-emerald-200 p-6 sm:p-8 mb-12">
             <div className="relative w-full sm:w-48 h-32 sm:h-36 rounded-xl overflow-hidden flex-shrink-0">
               <Image src="https://images.unsplash.com/photo-1555949963-aa79dcee981c?w=400" alt="Code and data" fill className="object-cover" sizes="400px" />
@@ -622,7 +918,7 @@ export default function LearnersPage() {
             </div>
           </div>
           {dataTypesTopics.map((topic, index) => (
-            <div key={topic.id} id={topic.id} className="scroll-mt-24 pb-12 last:pb-8">
+            <div key={topic.id} id={topic.id} className="scroll-mt-28 pb-12 last:pb-8">
               <div className="rounded-2xl border border-emerald-200/80 bg-white p-8 shadow-sm mb-8">
                 <div className="flex items-center gap-3 mb-4">
                   <span className="text-4xl">{topic.emoji}</span>
@@ -648,8 +944,8 @@ export default function LearnersPage() {
       </section>
 
       {/* Collections */}
-      <section id="collections" className="py-16 sm:py-20 bg-violet-50/30">
-        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+      <section id="collections" className="py-16 sm:py-20 bg-violet-50/30 scroll-mt-28">
+        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 xl:ml-60 xl:mr-auto">
           <div className="flex flex-col sm:flex-row items-center gap-6 rounded-2xl bg-violet-100/60 border border-violet-200 p-6 sm:p-8 mb-12">
             <div className="relative w-full sm:w-48 h-32 sm:h-36 rounded-xl overflow-hidden flex-shrink-0 order-2 sm:order-1">
               <Image src="https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=400" alt="Structured data" fill className="object-cover" sizes="400px" />
@@ -661,7 +957,7 @@ export default function LearnersPage() {
             </div>
           </div>
           {collectionsTopics.map((topic, index) => (
-            <div key={topic.id} id={topic.id} className="scroll-mt-24 pb-12 last:pb-8">
+            <div key={topic.id} id={topic.id} className="scroll-mt-28 pb-12 last:pb-8">
               <div className="rounded-2xl border border-violet-200/80 bg-white p-8 shadow-sm mb-8">
                 <div className="flex items-center gap-3 mb-4">
                   <span className="text-4xl">{topic.emoji}</span>
@@ -687,8 +983,8 @@ export default function LearnersPage() {
       </section>
 
       {/* Operators */}
-      <section id="operators" className="py-16 sm:py-20 bg-sky-50/30">
-        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+      <section id="operators" className="py-16 sm:py-20 bg-sky-50/30 scroll-mt-28">
+        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 xl:ml-60 xl:mr-auto">
           <div className="flex flex-col sm:flex-row items-center gap-6 rounded-2xl bg-sky-100/60 border border-sky-200 p-6 sm:p-8 mb-12">
             <div className="relative w-full sm:w-48 h-32 sm:h-36 rounded-xl overflow-hidden flex-shrink-0">
               <Image src="https://images.unsplash.com/photo-1504639725590-34d0984388bd?w=400" alt="Logic and operations" fill className="object-cover" sizes="400px" />
@@ -700,7 +996,7 @@ export default function LearnersPage() {
             </div>
           </div>
           {operatorsTopics.map((topic, index) => (
-            <div key={topic.id} id={topic.id} className="scroll-mt-24 pb-12 last:pb-8">
+            <div key={topic.id} id={topic.id} className="scroll-mt-28 pb-12 last:pb-8">
               <div className="rounded-2xl border border-sky-200/80 bg-white p-8 shadow-sm mb-8">
                 <div className="flex items-center gap-3 mb-4">
                   <span className="text-4xl">{topic.emoji}</span>
@@ -726,8 +1022,8 @@ export default function LearnersPage() {
       </section>
 
       {/* Conditions */}
-      <section id="conditions" className="py-16 sm:py-20 bg-rose-50/30">
-        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+      <section id="conditions" className="py-16 sm:py-20 bg-rose-50/30 scroll-mt-28">
+        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 xl:ml-60 xl:mr-auto">
           <div className="flex flex-col sm:flex-row items-center gap-6 rounded-2xl bg-rose-100/60 border border-rose-200 p-6 sm:p-8 mb-12">
             <div className="relative w-full sm:w-48 h-32 sm:h-36 rounded-xl overflow-hidden flex-shrink-0 order-2 sm:order-1">
               <Image src="https://images.unsplash.com/photo-1587620962725-abab7fe55159?w=400" alt="Branching logic" fill className="object-cover" sizes="400px" />
@@ -739,7 +1035,7 @@ export default function LearnersPage() {
             </div>
           </div>
           {conditionsTopics.map((topic, index) => (
-            <div key={topic.id} id={topic.id} className="scroll-mt-24 pb-12 last:pb-8">
+            <div key={topic.id} id={topic.id} className="scroll-mt-28 pb-12 last:pb-8">
               <div className="rounded-2xl border border-rose-200/80 bg-white p-8 shadow-sm mb-8">
                 <div className="flex items-center gap-3 mb-4">
                   <span className="text-4xl">{topic.emoji}</span>
@@ -765,8 +1061,8 @@ export default function LearnersPage() {
       </section>
 
       {/* Loops */}
-      <section id="loops" className="py-16 sm:py-20 bg-teal-50/30">
-        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+      <section id="loops" className="py-16 sm:py-20 bg-teal-50/30 scroll-mt-28">
+        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 xl:ml-60 xl:mr-auto">
           <div className="flex flex-col sm:flex-row items-center gap-6 rounded-2xl bg-teal-100/60 border border-teal-200 p-6 sm:p-8 mb-12">
             <div className="relative w-full sm:w-48 h-32 sm:h-36 rounded-xl overflow-hidden flex-shrink-0">
               <Image src="https://images.unsplash.com/photo-1516116216624-53e697fedbea?w=400" alt="Iteration" fill className="object-cover" sizes="400px" />
@@ -778,7 +1074,7 @@ export default function LearnersPage() {
             </div>
           </div>
           {loopsTopics.map((topic, index) => (
-            <div key={topic.id} id={topic.id} className="scroll-mt-24 pb-12 last:pb-8">
+            <div key={topic.id} id={topic.id} className="scroll-mt-28 pb-12 last:pb-8">
               <div className="rounded-2xl border border-teal-200/80 bg-white p-8 shadow-sm mb-8">
                 <div className="flex items-center gap-3 mb-4">
                   <span className="text-4xl">{topic.emoji}</span>
@@ -804,8 +1100,8 @@ export default function LearnersPage() {
       </section>
 
       {/* 2. Function types */}
-      <section id="functions" className="py-16 sm:py-20 bg-neutral-50">
-        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+      <section id="functions" className="py-16 sm:py-20 bg-neutral-50 scroll-mt-28">
+        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 xl:ml-60 xl:mr-auto">
           <div className="flex flex-col sm:flex-row items-center gap-6 rounded-2xl bg-blue-100/60 border border-blue-200 p-6 sm:p-8 mb-12">
             <div className="relative w-full sm:w-48 h-32 sm:h-36 rounded-xl overflow-hidden flex-shrink-0">
               <Image src="https://images.unsplash.com/photo-1526379095098-d400fd0bf935?w=400" alt="Python functions" fill className="object-cover" sizes="400px" />
@@ -817,7 +1113,7 @@ export default function LearnersPage() {
             </div>
           </div>
           {functionTypes.map((type, index) => (
-            <div key={type.id} id={type.id} className="scroll-mt-24 pb-16 last:pb-8">
+            <div key={type.id} id={type.id} className="scroll-mt-28 pb-16 last:pb-8">
               <div className="rounded-2xl border border-neutral-200 bg-white p-8 shadow-sm">
                 <div className="flex items-center gap-3 mb-4">
                   <span className="text-4xl">{type.emoji}</span>
@@ -866,8 +1162,8 @@ export default function LearnersPage() {
       </section>
 
       {/* 3. OOP / Class design */}
-      <section id="oop" className="py-16 sm:py-20 bg-amber-50/30">
-        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+      <section id="oop" className="py-16 sm:py-20 bg-amber-50/30 scroll-mt-28">
+        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 xl:ml-60 xl:mr-auto">
           <div className="flex flex-col sm:flex-row items-center gap-6 rounded-2xl bg-amber-100/60 border border-amber-200 p-6 sm:p-8 mb-12">
             <div className="relative w-full sm:w-48 h-32 sm:h-36 rounded-xl overflow-hidden flex-shrink-0 order-2 sm:order-1">
               <Image src="https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=400" alt="Object-oriented design" fill className="object-cover" sizes="400px" />
@@ -879,7 +1175,7 @@ export default function LearnersPage() {
             </div>
           </div>
           {oopTopics.map((topic, index) => (
-            <div key={topic.id} id={topic.id} className="scroll-mt-24 pb-16 last:pb-8">
+            <div key={topic.id} id={topic.id} className="scroll-mt-28 pb-16 last:pb-8">
               <div className="rounded-2xl border border-amber-200/80 bg-white p-8 shadow-sm">
                 <div className="flex items-center gap-3 mb-4">
                   <span className="text-4xl">{topic.emoji}</span>
@@ -928,8 +1224,8 @@ export default function LearnersPage() {
       </section>
 
       {/* Summary */}
-      <section id="summary" className="py-16 sm:py-20 bg-white">
-        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+      <section id="summary" className="py-16 sm:py-20 bg-white scroll-mt-28">
+        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 xl:ml-60 xl:mr-auto">
           <div className="flex flex-col sm:flex-row items-center gap-6 rounded-2xl bg-neutral-100 border border-neutral-200 p-6 sm:p-8 mb-12">
             <div className="relative w-full sm:w-48 h-32 sm:h-36 rounded-xl overflow-hidden flex-shrink-0">
               <Image src="https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=400" alt="Summary and review" fill className="object-cover" sizes="400px" />
@@ -1058,7 +1354,7 @@ export default function LearnersPage() {
       {scrolled && (
         <Button
           size="icon"
-          className="fixed bottom-6 right-6 rounded-full shadow-lg z-40"
+          className="fixed bottom-6 right-6 rounded-full shadow-lg z-50"
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
           aria-label="Scroll to top"
         >
